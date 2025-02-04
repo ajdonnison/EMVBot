@@ -39,6 +39,18 @@ Fire services will open a job from a variety of sources, these are listed in the
 
 Fires start off as an open job, which will usually show up as "Responding" as the first status.  This may transit through "Not Yet Under Control", "Controlled", to finally "Safe"
 
+Fire incidents have a sub-category (listed as the last hashtag) that indicates the type of incident.  For CFA at least these can be:
+
+* Bushfire
+* Grass and Scrub Fire
+* Non Structure Fire
+* Structure Fire
+* Other Fire
+* Incident
+* Rescue
+
+The feed generally calls Structure Fires "Building Fire", and conflates both Bushfire and Grass and Scrub Fire as "Bushfire".
+
 SES jobs start off as "Request for Assistance", and transfer through "Responding" to "Complete"/
 
 Because the "Responding" status can get updated multiple times (for all services) as more resources are added, only the first status of any kind is reported.
