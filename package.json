@@ -1,0 +1,17 @@
+{
+  "name": "emvbot",
+  "version": "1.0.0",
+  "description": "Sends EMV warnings to BlueSky",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Adam Donnison <adam@saki.com.au>",
+  "license": "ISC",
+  "dependencies": {
+    "@atproto/api": "^0.13.32",
+    "dotenv": "^16.4.7",
+    "luxon": "^3.5.0"
+  }
+}
