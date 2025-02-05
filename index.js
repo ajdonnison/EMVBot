@@ -92,7 +92,10 @@ function makePost (incident) {
           post.text += `\nSize: ${properties.sizeFmt}`
         }
       }
-      post.text += `\nResources: ${properties.resources}\n${updated}\nFrom `
+      if (Object.prototype.hasOwnProperty.call(properties, 'resources')) {
+        post.text += `\nResources: ${properties.resources}`
+      }
+      post.text += `\n${updated}\nFrom `
       addTag(properties.sourceOrg)
       if (Object.prototype.hasOwnProperty.call(properties, 'source') && !properties.source.startsWith('ERROR')) {
         post.text += ` via ${properties.source}`
