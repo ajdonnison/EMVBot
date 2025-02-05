@@ -71,7 +71,9 @@ function makePost (incident) {
   switch (properties.feedType) {
     case 'incident':
       post.text = `${properties.category2} ${properties.location}\n\nStatus: ${properties.status}`
-      if (properties.sizeFmt) {
+      if (Array.isArray(properties.sizeFmt)) {
+        post.text += `\nSize: ${properties.sizeFmt[0]}`
+      } else {
         post.text += `\nSize: ${properties.sizeFmt}`
       }
       post.text += `\nResources: ${properties.resources}\n${updated}\nFrom #${properties.sourceOrg} via ${properties.source}\n`
