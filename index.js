@@ -78,9 +78,33 @@ function makePost (incident) {
     post.text += `#${tagName}`
   }
 
+  function timeSinceStart () {
+    const secsSinceStart = (DateTime.fromISO(properties.updated).toMillis() - DateTime.fromISO(properties.created).toMillis()) / 1000
+    const days = Math.floor(secsSinceStart / 86400)
+    const hours = Math.floor((secsSinceStart % 86400) / 3600)
+    const mins = Math.floor((secsSinceStart % 3600) / 60)
+    const secs = Math.floor(secsSinceStart % 60)
+
+    let timeStamp = ''
+    if (days) {
+      timeStamp += `${days}d `
+    }
+    if (hours) {
+      timeStamp += `${hours}h `
+    }
+    if (mins) {
+      timeStamp += `${mins}m `
+    }
+    if (secs) {
+      timeStamp += `${secs}s`
+    }
+    return timeStamp
+  }
+
   const updated = DateTime.fromISO(properties.updated).setZone('Australia/Melbourne').toLocaleString(DateTime.DATETIME_MED)
   const mapLink = 'Find on Map >'
   const detailLink = 'Full Details >'
+  const openTime = timeSinceStart()
 
   switch (properties.feedType) {
     case 'incident':
@@ -95,7 +119,11 @@ function makePost (incident) {
       if (Object.prototype.hasOwnProperty.call(properties, 'resources')) {
         post.text += `\nResources: ${properties.resources}`
       }
-      post.text += `\n${updated}\nFrom `
+      post.text += `\n${updated}`
+      if (openTime.length) {
+        post.text += ` - open ${openTime}`
+      }
+      post.text += '\nFrom '
       addTag(properties.sourceOrg)
       if (Object.prototype.hasOwnProperty.call(properties, 'source') && !properties.source.startsWith('ERROR')) {
         post.text += ` via ${properties.source}`
@@ -158,6 +186,7 @@ async function main () {
   try {
     const data = await fetch(process.env.DATA_URL)
     if (!data.ok) {
+      console.log('failed to pull data')
       return
     }
     const posts = []
@@ -176,7 +205,13 @@ async function main () {
       }
     }
     if (updateCount) {
-      await postUpdates(posts)
+      if (process.env.POST_TO_BSKY === 'Y') {
+        await postUpdates(posts)
+      } else {
+        for (const post of posts) {
+          console.log(post.text)
+        }
+      }
       control.lastProcessed = DateTime.now()
     }
   } catch (err) {
@@ -193,7 +228,7 @@ function loop () {
   setTimeout(async () => {
     await main()
     loop()
-  }, 30000)
+  }, Number(process.env.UPDATE_TIME) * 1000)
 }
 
 loop()
