@@ -3,7 +3,7 @@
  * there is an update. We then pull any and all warnings that have been updated
  * since the last pass and send them to BlueSky
 */
-import { BskyAgent, RichText } from '@atproto/api'
+import { BskyAgent } from '@atproto/api'
 import * as dotenv from 'dotenv'
 import { DateTime } from 'luxon'
 
@@ -36,17 +36,9 @@ async function updated () {
 async function postUpdates (incidents) {
   await agent.login({ identifier: process.env.BLUESKY_USERNAME, password: process.env.BLUESKY_PASSWORD })
   for (const incident of incidents) {
-    if (incident) {
-      console.log(incident)
-      const rt = new RichText({ text: incident })
-      await rt.detectFacets(agent)
-      const post = {
-        $type: 'app.bsky.feed.post',
-        text: rt.text,
-        facets: rt.facets,
-        createdAt: DateTime.now().toISO()
-      }
-      await agent.post(post)
+    if (incident.text) {
+      console.log(incident.text)
+      await agent.post(incident)
     }
   }
 }
@@ -56,7 +48,12 @@ async function postUpdates (incidents) {
 // Warnings have an incidentFeature element with the associated incident.  Otherwise they have:
 // sourceTitle, name, action, location, text
 function makePost (incident) {
-  let text = ''
+  const post = {
+    $type: 'app.bsky.feed.post',
+    text: '',
+    facets: [],
+    createdAt: DateTime.now().toISO()
+  }
   const properties = incident.properties
   let location = []
   if (incident.geometry.type === 'Point') {
@@ -66,25 +63,79 @@ function makePost (incident) {
   }
   let locname = properties.location
 
+  const updated = DateTime.fromISO(properties.updated).setZone('Australia/Melbourne').toLocaleString(DateTime.DATETIME_MED)
+  const mapLink = 'Find on Map >'
+  const detailLink = 'Full Details >'
+
   switch (properties.feedType) {
     case 'incident':
-      text = `${properties.category2} ${properties.location}\n\nStatus: ${properties.status}\nSize: ${properties.sizeFmt || 'unknown'}\nResources: ${properties.resources}\nUpdated: ${properties.updated}\nFrom #${properties.sourceOrg} via ${properties.source}\n`
-      if (location.length) {
-        text += `https://www.google.com/maps/search/?api=1&query=${location[1]},${location[0]}\n`
+      post.text = `${properties.category2} ${properties.location}\n\nStatus: ${properties.status}`
+      if (properties.sizeFmt) {
+        post.text += `\nSize: ${properties.sizeFmt}`
       }
-      text += `#EMVAlert #${properties.feedType} #${properties.category1.replaceAll(' ', '')} #${properties.category2.replaceAll(' ', '')}`
+      post.text += `\nResources: ${properties.resources}\n${updated}\nFrom #${properties.sourceOrg} via ${properties.source}\n`
+      if (location.length) {
+        post.facets.push({
+          index: {
+            byteStart: post.text.length,
+            byteEnd: post.text.length + mapLink.length
+          },
+          features: [{
+            $type: 'app.bsky.richtext.facet#link',
+            uri: `https://www.google.com/maps/search/?api=1&query=${location[1]},${location[0]}`
+          }]
+        })
+        post.text += mapLink
+      }
       break
     case 'warning':
-      if (properties.location.length > 100) {
-        locname = properties.location.substr(0, 100) + '...'
+      if (properties.location.length > 160) {
+        locname = properties.location.substr(0, 160) + '...'
       }
-      text = `${properties.name}\n${properties.action}\n${locname}\nUpdated ${properties.updated}\nMore information: http://emergency.vic.gov.au/respond/#!/warning/${properties.sourceId}/moreinfo\nFrom #${properties.sourceOrg}\n#EMVAlert #${properties.feedType}`
+      post.text = `${properties.name}\n${properties.action}\n${locname}\n${updated}\n`
+      post.facets.push({
+        index: {
+          byteStart: post.text.length,
+          byteEnd: post.text.length + detailLink.length
+        },
+        features: [{
+          $type: 'app.bsky.richtext.facet#link',
+          uri: `http://emergency.vic.gov.au/respond/#!/warning/${properties.sourceId}/moreinfo`
+        }]
+      })
+      post.text += `${detailLink}\nFrom #${properties.sourceOrg}`
       break
     default:
       console.log(`unknown feed type ${properties.feedType}`)
       break
   }
-  return text
+
+  function addTag (tagName) {
+    post.facets.push({
+      index: {
+        byteStart: post.text.length,
+        byteEnd: post.text.length + tagName.length + 1
+      },
+      features: [{
+        $type: 'app.bsky.richtext.facet#tag',
+        tag: tagName
+      }]
+    })
+    post.text += `#${tagName}`
+  }
+
+  if (post.text) {
+    post.text += '\n'
+    addTag('EMVAlert')
+    post.text += ' '
+    addTag(properties.category1.replaceAll(' ', ''))
+    if (properties.category2 !== properties.category1) {
+      post.text += ' '
+      addTag(properties.category2.replaceAll(' ', ''))
+    }
+  }
+
+  return post
 }
 
 async function main () {
