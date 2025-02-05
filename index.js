@@ -80,7 +80,7 @@ function makePost (incident) {
       }
       post.text += `\nResources: ${properties.resources}\n${updated}\nFrom #${properties.sourceOrg}`
       if (Object.prototype.hasOwnProperty.call(properties, 'source') && !properties.source.startsWith('ERROR')) {
-        post.text += `via ${properties.source}`
+        post.text += ` via ${properties.source}`
       }
       post.text += '\n'
       if (location.length) {
