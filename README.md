@@ -6,7 +6,6 @@ It is a quick-and-dirty implementation and has a lot that needs to be done to ma
 
 * Split long alerts into multiple posts
 * Add web card for the links
-* Change the link text and put link in facets
 * Error handling!
 
 
