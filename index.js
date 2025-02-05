@@ -22,10 +22,11 @@ const control = {
 async function updated () {
   const response = await fetch(process.env.DELTA_URL)
   if (!response.ok) {
-    throw new Error(`response status ${response.status}`)
+    control.lastModified = DateTime.now()
+  } else {
+    const lastUpdate = await response.json()
+    control.lastModified = DateTime.fromISO(lastUpdate.lastModified)
   }
-  const lastUpdate = await response.json()
-  control.lastModified = DateTime.fromISO(lastUpdate.lastModified)
   if (!control.lastProcessed) {
     control.lastProcessed = DateTime.now()
   }
@@ -141,28 +142,32 @@ function makePost (incident) {
 }
 
 async function main () {
-  const data = await fetch(process.env.DATA_URL)
-  if (!data.ok) {
-    return
-  }
-  const posts = []
-  console.log('processing')
-  const incidents = await data.json()
-  let updateCount = 0
-  for (const feature of incidents.features) {
-    const updateTime = DateTime.fromISO(feature.properties.updated)
-    if (updateTime.toMillis() > control.lastProcessed.toMillis()) {
-      console.log(`${feature.properties.feedType} ${feature.properties.category1} ${feature.properties.category2} ${feature.properties.location}`)
-      if (!Object.prototype.hasOwnProperty.call(incidentMap, feature.properties.id) || (feature.properties.status && incidentMap[feature.properties.id].status !== feature.properties.status)) {
-        incidentMap[feature.properties.id] = feature.properties
-        posts.push(makePost(feature))
-        updateCount++
+  try {
+    const data = await fetch(process.env.DATA_URL)
+    if (!data.ok) {
+      return
+    }
+    const posts = []
+    console.log('processing')
+    const incidents = await data.json()
+    let updateCount = 0
+    for (const feature of incidents.features) {
+      const updateTime = DateTime.fromISO(feature.properties.updated)
+      if (updateTime.toMillis() > control.lastProcessed.toMillis()) {
+        console.log(`${feature.properties.feedType} ${feature.properties.category1} ${feature.properties.category2} ${feature.properties.location}`)
+        if (!Object.prototype.hasOwnProperty.call(incidentMap, feature.properties.id) || (feature.properties.status && incidentMap[feature.properties.id].status !== feature.properties.status)) {
+          incidentMap[feature.properties.id] = feature.properties
+          posts.push(makePost(feature))
+          updateCount++
+        }
       }
     }
-  }
-  if (updateCount) {
-    await postUpdates(posts)
-    control.lastProcessed = DateTime.now()
+    if (updateCount) {
+      await postUpdates(posts)
+      control.lastProcessed = DateTime.now()
+    }
+  } catch (err) {
+    return err
   }
 }
 
