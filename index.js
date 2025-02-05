@@ -128,6 +128,8 @@ function makePost (incident) {
     post.text += '\n'
     addTag('EMVAlert')
     post.text += ' '
+    addTag(properties.feedType)
+    post.text += ' '
     addTag(properties.category1.replaceAll(' ', ''))
     if (properties.category2 !== properties.category1) {
       post.text += ' '
