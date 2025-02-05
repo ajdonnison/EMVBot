@@ -64,6 +64,20 @@ function makePost (incident) {
   }
   let locname = properties.location
 
+  function addTag (tagName) {
+    post.facets.push({
+      index: {
+        byteStart: post.text.length,
+        byteEnd: post.text.length + tagName.length + 1
+      },
+      features: [{
+        $type: 'app.bsky.richtext.facet#tag',
+        tag: tagName
+      }]
+    })
+    post.text += `#${tagName}`
+  }
+
   const updated = DateTime.fromISO(properties.updated).setZone('Australia/Melbourne').toLocaleString(DateTime.DATETIME_MED)
   const mapLink = 'Find on Map >'
   const detailLink = 'Full Details >'
@@ -78,7 +92,8 @@ function makePost (incident) {
           post.text += `\nSize: ${properties.sizeFmt}`
         }
       }
-      post.text += `\nResources: ${properties.resources}\n${updated}\nFrom #${properties.sourceOrg}`
+      post.text += `\nResources: ${properties.resources}\n${updated}\nFrom `
+      addTag(properties.sourceOrg)
       if (Object.prototype.hasOwnProperty.call(properties, 'source') && !properties.source.startsWith('ERROR')) {
         post.text += ` via ${properties.source}`
       }
@@ -112,25 +127,12 @@ function makePost (incident) {
           uri: `http://emergency.vic.gov.au/respond/#!/warning/${properties.sourceId}/moreinfo`
         }]
       })
-      post.text += `${detailLink}\nFrom #${properties.sourceOrg}`
+      post.text += `${detailLink}\nFrom `
+      addTag(properties.sourceOrg)
       break
     default:
       console.log(`unknown feed type ${properties.feedType}`)
       break
-  }
-
-  function addTag (tagName) {
-    post.facets.push({
-      index: {
-        byteStart: post.text.length,
-        byteEnd: post.text.length + tagName.length + 1
-      },
-      features: [{
-        $type: 'app.bsky.richtext.facet#tag',
-        tag: tagName
-      }]
-    })
-    post.text += `#${tagName}`
   }
 
   if (post.text) {
