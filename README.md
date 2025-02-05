@@ -7,6 +7,8 @@ It is a quick-and-dirty implementation and has a lot that needs to be done to ma
 * Split long alerts into multiple posts
 * Add web card for the links
 * Error handling!
+* Currently it uses an in-memory de-dup handling, which could grow over time, need to have some pruning mechanism
+* Geolocation to CFA region/district or LGA to provide hashtags for filtering
 
 
 ## Alert details
