@@ -9,6 +9,8 @@ import { DateTime } from 'luxon'
 
 dotenv.config()
 
+const VERBOSE = ( process.env.DEBUG ||  'N') === 'Y'
+
 const agent = new BskyAgent({
   service: 'https://bsky.social'
 })
@@ -17,6 +19,12 @@ const incidentMap = {}
 
 const control = {
   lastProcessed: false
+}
+
+function debug(msg) {
+  if (VERBOSE) {
+    console.log(msg)
+  }
 }
 
 async function updated () {
@@ -30,7 +38,7 @@ async function updated () {
   if (!control.lastProcessed) {
     control.lastProcessed = DateTime.now()
   }
-  console.log(control)
+  debug(control)
   return control.lastModified.toMillis() > control.lastProcessed.toMillis()
 }
 
@@ -38,7 +46,7 @@ async function postUpdates (incidents) {
   await agent.login({ identifier: process.env.BLUESKY_USERNAME, password: process.env.BLUESKY_PASSWORD })
   for (const incident of incidents) {
     if (incident.text) {
-      console.log(incident.text)
+      debug(incident.text)
       await agent.post(incident)
     }
   }
@@ -190,13 +198,13 @@ async function main () {
       return
     }
     const posts = []
-    console.log('processing')
+    debug('processing')
     const incidents = await data.json()
     let updateCount = 0
     for (const feature of incidents.features) {
       const updateTime = DateTime.fromISO(feature.properties.updated)
       if (updateTime.toMillis() > control.lastProcessed.toMillis()) {
-        console.log(`${feature.properties.feedType} ${feature.properties.category1} ${feature.properties.category2} ${feature.properties.location}`)
+        debug(`${feature.properties.feedType} ${feature.properties.category1} ${feature.properties.category2} ${feature.properties.location}`)
         if (!Object.prototype.hasOwnProperty.call(incidentMap, feature.properties.id) || (feature.properties.status && incidentMap[feature.properties.id].status !== feature.properties.status)) {
           incidentMap[feature.properties.id] = feature.properties
           posts.push(makePost(feature))
@@ -209,7 +217,7 @@ async function main () {
         await postUpdates(posts)
       } else {
         for (const post of posts) {
-          console.log(post.text)
+          debug(post.text)
         }
       }
       control.lastProcessed = DateTime.now()
