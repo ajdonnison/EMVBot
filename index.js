@@ -9,7 +9,7 @@ import { DateTime } from 'luxon'
 
 dotenv.config()
 
-const VERBOSE = ( process.env.DEBUG ||  'N') === 'Y'
+const VERBOSE = (process.env.DEBUG || 'N') === 'Y'
 
 const agent = new BskyAgent({
   service: 'https://bsky.social'
@@ -21,7 +21,7 @@ const control = {
   lastProcessed: false
 }
 
-function debug(msg) {
+function debug (msg) {
   if (VERBOSE) {
     console.log(msg)
   }
@@ -190,6 +190,21 @@ function makePost (incident) {
   return post
 }
 
+function cleanupOldIncidents () {
+  const millisOld = Number(process.env.PURGE_DAYS || 4) * 86400 * 1000
+  const delKeys = []
+  const now = DateTime.now().toMillis()
+  const cutoff = now - millisOld
+  for (const [ix, val] of Object.entries(incidentMap)) {
+    if (DateTime.fromISO(val.updated).toMillis() < cutoff) {
+      delKeys.push(ix)
+    }
+  }
+  for (const ix of delKeys) {
+    delete incidentMap[ix]
+  }
+}
+
 async function main () {
   try {
     const data = await fetch(process.env.DATA_URL)
@@ -220,6 +235,7 @@ async function main () {
           debug(post.text)
         }
       }
+      cleanupOldIncidents()
       control.lastProcessed = DateTime.now()
     }
   } catch (err) {
