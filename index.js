@@ -221,7 +221,12 @@ async function main () {
       if (updateTime.toMillis() > control.lastProcessed.toMillis()) {
         debug(`${feature.properties.feedType} ${feature.properties.category1} ${feature.properties.category2} ${feature.properties.location}`)
         if (!Object.prototype.hasOwnProperty.call(incidentMap, feature.properties.id) || (feature.properties.status && incidentMap[feature.properties.id].status !== feature.properties.status)) {
-          incidentMap[feature.properties.id] = feature.properties
+          incidentMap[feature.properties.id] = {
+            status: feature.properties.status,
+            updated: feature.properties.updated,
+            id: feature.properties.id,
+            created: feature.properties.created
+          }
           posts.push(makePost(feature))
           updateCount++
         }
